@@ -118,9 +118,6 @@ It also provides an embedded audio player to listen to the uploaded clip.
 * Supported audio formats depend on **Librosa** and **audioread**.
 * The `uploads/` folder is created automatically if it does not exist.
 
-## 📜 License
-
-This project is for educational purposes.
 
 ---
 
