@@ -38,20 +38,40 @@
             margin-top: 20px;
             text-align: center;
         }
+        .recording-controls {
+            text-align: center;
+            margin-top: 30px;
+        }
+        #status {
+            margin-top: 10px;
+            text-align: center;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Audio Sentiment Detection</h1>
+
+    <!-- Upload Section -->
     <form method="POST" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="audio" class="form-label">Upload Audio File</label>
-            <input type="file" class="form-control" id="audio" name="audio" accept="audio/*" required>
+            <input type="file" class="form-control" id="audio" name="audio" accept="audio/*">
         </div>
         <button type="submit" class="btn btn-custom w-100">Submit</button>
     </form>
 
+    <!-- Recording Section -->
+    <div class="recording-controls">
+        <h5>Or Record Your Voice:</h5>
+        <button class="btn btn-outline-primary me-2" onclick="startRecording()">Start Recording</button>
+        <button class="btn btn-outline-danger" onclick="stopRecording()">Stop & Submit</button>
+        <p id="status"></p>
+    </div>
+
+    <!-- Output -->
     {% if sentiment %}
     <div class="result">
         <h4>Predicted Sentiment: {{ sentiment }}</h4>
@@ -65,8 +85,53 @@
     {% endif %}
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+<!-- JavaScript -->
+<script>
+    let mediaRecorder;
+    let audioChunks = [];
 
+    async function startRecording() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const formData = new FormData();
+                formData.append("audio", audioBlob, "recorded_audio.wav");
+
+                document.getElementById("status").textContent = "Uploading and analyzing...";
+
+                const response = await fetch("/", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const html = await response.text();
+                document.open();
+                document.write(html);
+                document.close();
+            };
+
+            mediaRecorder.start();
+            audioChunks = [];
+            document.getElementById("status").textContent = "Recording...";
+        } catch (err) {
+            document.getElementById("status").textContent = "Microphone access denied or not supported.";
+        }
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+        }
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
